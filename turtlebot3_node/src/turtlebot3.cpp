@@ -35,7 +35,7 @@ TurtleBot3::TurtleBot3(const std::string & usb_port)
   add_wheels();
   add_sensors();
   add_devices();
-
+  
   run();
 }
 
@@ -218,8 +218,14 @@ void TurtleBot3::run()
   publish_timer(std::chrono::milliseconds(50));
   heartbeat_timer(std::chrono::milliseconds(100));
 
+  this->declare_parameter<int>("robot_id");
+  this->get_parameter_or<int>("robot_id", robot_id, 0);
+  
   parameter_event_callback();
   cmd_vel_callback();
+  status_publisher_init();
+  status_check_callback();
+  shutdown_callback();
 }
 
 void TurtleBot3::publish_timer(const std::chrono::milliseconds timeout)
@@ -324,8 +330,9 @@ void TurtleBot3::parameter_event_callback()
 void TurtleBot3::cmd_vel_callback()
 {
   auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
+  
   cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-    "cmd_vel",
+    "cmd_vel_"+std::to_string(robot_id),
     qos,
     [this](const geometry_msgs::msg::Twist::SharedPtr msg) -> void
     {
@@ -359,3 +366,57 @@ void TurtleBot3::cmd_vel_callback()
     }
   );
 }
+
+void TurtleBot3::status_check_callback()
+{
+  RCLCPP_INFO(this->get_logger(), "Init Status Check");
+  auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
+  
+  status_check_sub_ = this->create_subscription<std_msgs::msg::String>(
+    "status_check",
+    qos,
+    [this](const std_msgs::msg::String::SharedPtr msg) -> void
+    {
+      RCLCPP_INFO(this->get_logger(), "Status Check Recieved");
+      publish_status(1);
+    }
+  );
+}
+
+void TurtleBot3::status_publisher_init()
+{
+  RCLCPP_INFO(this->get_logger(), "Init Status Publisher");
+  auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
+  
+  status_publisher_ = this->create_publisher<std_msgs::msg::String>(
+    "turtlebot_status",
+    qos
+  );
+  publish_status(1);
+}
+
+void TurtleBot3::publish_status(int status)
+{
+  auto message = std_msgs::msg::String();
+  message.data = std::string(std::to_string(robot_id)+":turtlebot:turtlebot:"+std::to_string(status));
+  status_publisher_ ->publish(message);
+  RCLCPP_INFO(this->get_logger(), "Status Published");
+}
+
+void TurtleBot3::shutdown_callback()
+{
+  RCLCPP_INFO(this->get_logger(), "Init Shutdown Callback");
+  auto qos = rclcpp::QoS(rclcpp::KeepLast(10));
+  
+  shutdown_sub_ = this->create_subscription<std_msgs::msg::String>(
+    "turtlebot_shutdown_"+std::to_string(robot_id),
+    qos,
+    [this](const std_msgs::msg::String::SharedPtr msg) -> void
+    {
+      RCLCPP_INFO(this->get_logger(), "Shutdown Message Recieved");
+      publish_status(0);
+      // Close nodes
+    }
+  );
+}
+

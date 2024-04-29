@@ -29,6 +29,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include <geometry_msgs/msg/twist.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/battery_state.hpp>
@@ -91,6 +92,10 @@ private:
 
   void cmd_vel_callback();
   void parameter_event_callback();
+  void status_check_callback();
+  void status_publisher_init();
+  void publish_status(int status);
+  void shutdown_callback();
 
   Wheels wheels_;
   Motors motors_;
@@ -108,6 +113,10 @@ private:
   rclcpp::TimerBase::SharedPtr heartbeat_timer_;
 
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr status_check_sub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr shutdown_sub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_publisher_;
+  int robot_id;
 
   rclcpp::AsyncParametersClient::SharedPtr priv_parameters_client_;
   rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr parameter_event_sub_;

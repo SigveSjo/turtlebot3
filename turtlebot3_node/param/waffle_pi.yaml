@@ -1,6 +1,8 @@
 turtlebot3_node:
   ros__parameters:
 
+    robot_id: 1
+
     opencr:
       id: 200
       baud_rate: 1000000
