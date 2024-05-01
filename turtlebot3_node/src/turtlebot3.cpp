@@ -415,7 +415,7 @@ void TurtleBot3::shutdown_callback()
     {
       RCLCPP_INFO(this->get_logger(), "Shutdown Message Recieved");
       publish_status(0);
-      // Close nodes
+      system("killall -SIGINT ros2");
     }
   );
 }
